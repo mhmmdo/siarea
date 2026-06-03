@@ -213,11 +213,11 @@
                     <i class="bi bi-clock-history"></i> Riwayat Absen
                 </a>
             </li>
-            <li>
+            <!-- <li>
                 <a href="{{ $scanRoute }}" class="{{ Route::is('user.scan*') || Route::is('user.checkout*') ? $scanActiveClass : '' }}">
                     <i class="bi {{ $scanIcon }}"></i> {{ $scanLabel }}
                 </a>
-            </li>
+            </li> -->
             <li>
                 <a href="{{ route('user.salary') }}" class="{{ Route::is('user.salary*') ? 'active' : '' }}">
                     <i class="bi bi-receipt"></i> Slip Gaji

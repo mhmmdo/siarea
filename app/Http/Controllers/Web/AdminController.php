@@ -90,7 +90,7 @@ class AdminController extends Controller
         $status = $request->input('status');
 
         $query = AttendanceRecord::whereBetween('date', [$startDate, $endDate])
-            ->with(['employee', 'shift', 'lateRecord']);
+            ->with(['employee', 'shift', 'lateRecord', 'checkout']);
 
         if ($employeeId) {
             $query->where('employee_id', $employeeId);

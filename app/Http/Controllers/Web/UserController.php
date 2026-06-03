@@ -163,7 +163,7 @@ class UserController extends Controller
     }
 
     /**
-     * Show QR scan page
+     * Show QR scan page (Check-in or Checkout)
      */
     public function scan()
     {
@@ -174,12 +174,57 @@ class UserController extends Controller
             return redirect('/login')->with('error', 'Employee record not found');
         }
 
+        // Get today's attendance record
+        $todayAttendance = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereDate('date', today())
+            ->with('shift', 'checkout')
+            ->first();
+
+        // Check if can checkout (past shift end time)
+        $canCheckout = false;
+        $shiftEndTime = null;
+        $timeUntilCheckout = null;
+
+        if ($todayAttendance && !$todayAttendance->hasCheckedOut()) {
+            $shiftEndTime = $todayAttendance->shift->end_time;
+            $currentTime = now()->format('H:i:s');
+            
+            // Handle overnight shifts
+            if ($shiftEndTime < $todayAttendance->shift->start_time) {
+                // Overnight shift: check if current time is >= end time OR in early morning part
+                $currentTimeMinutes = $this->timeToMinutes($currentTime);
+                $endTimeMinutes = $this->timeToMinutes($shiftEndTime);
+                
+                if ($currentTimeMinutes >= $endTimeMinutes) {
+                    $canCheckout = true;
+                }
+            } else {
+                // Normal shift: check if current time >= end time
+                if ($currentTime >= $shiftEndTime) {
+                    $canCheckout = true;
+                } else {
+                    // Calculate time remaining until checkout
+                    $endMinutes = $this->timeToMinutes($shiftEndTime);
+                    $currentMinutes = $this->timeToMinutes($currentTime);
+                    $remainingMinutes = $endMinutes - $currentMinutes;
+                    
+                    $hours = intdiv($remainingMinutes, 60);
+                    $minutes = $remainingMinutes % 60;
+                    $timeUntilCheckout = sprintf('%02d:%02d', $hours, $minutes);
+                }
+            }
+        }
+
         // Get active QR codes
         $qrCodes = QrCode::where('is_active', true)->get();
 
         return view('user.scan', [
             'employee' => $employee,
+            'todayAttendance' => $todayAttendance,
             'qrCodes' => $qrCodes,
+            'canCheckout' => $canCheckout,
+            'shiftEndTime' => $shiftEndTime,
+            'timeUntilCheckout' => $timeUntilCheckout,
         ]);
     }
 

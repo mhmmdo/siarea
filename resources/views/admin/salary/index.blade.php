@@ -86,13 +86,14 @@
         box-shadow: 0 4px 10px rgba(184, 134, 11, 0.2);
     }
 
-    /* Bulk Action Bar yang Melayang Bawah */
+    /* Bulk Action Bar Melayang */
     .bulk-action-bar {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-top: 1px solid var(--cafe-border);
+        border: 1px solid var(--cafe-border);
         padding: 1rem 1.5rem;
-        border-radius: 0 0 16px 16px;
+        border-radius: 16px;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
     }
 </style>
 @endpush
@@ -161,7 +162,7 @@
         @csrf
     </form>
 
-    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
         <div class="card-body p-0">
             @if (!empty($salaries) && $salaries->count() > 0)
                 <div class="table-responsive">
@@ -169,7 +170,7 @@
                         <thead class="border-bottom" style="background-color: rgba(248, 246, 243, 0.5);">
                             <tr>
                                 <th class="ps-4" style="width: 40px;">
-                                    <input class="form-check-input shadow-sm" type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
+                                    <input class="form-check-input shadow-sm" type="checkbox" id="selectAll">
                                 </th>
                                 <th style="width: 50px;">#</th>
                                 <th>Karyawan</th>
@@ -182,7 +183,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($salaries as $salary)
+                            @foreach ($salaries as $salary)
                                 <tr class="border-bottom">
                                     <td class="ps-4">
                                         @if ($salary->status === 'draft')
@@ -235,7 +236,7 @@
                                                     </button>
                                                 </form>
                                             @elseif ($salary->status === 'approved')
-                                            <form action="{{ route('admin.salary.mark-paid', $salary->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tandai gaji ini sudah dibayar ke karyawan?');">
+                                                <form action="{{ route('admin.salary.mark-paid', $salary->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tandai gaji ini sudah dibayar ke karyawan?');">
                                                     @csrf
                                                     <button type="submit" class="btn-action btn-paid" title="Tandai Sudah Ditransfer/Dibayar">
                                                         <i class="bi bi-cash-stack"></i>
@@ -245,25 +246,13 @@
                                         </div>
                                     </td>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="9"></td>
-                                </tr>
-                            @endforelse
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
 
-                <div class="bulk-action-bar d-flex flex-column flex-md-row justify-content-between align-items-center gap-3" id="bulkActionBar" style="display: none;">
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="submit" form="bulkForm" class="btn btn-success shadow-sm d-flex align-items-center gap-2 px-3 py-2" id="bulkApproveBtn">
-                            <i class="bi bi-check2-all"></i> Setujui yang Dipilih
-                        </button>
-                        <a href="{{ route('admin.salary.index', ['month' => $month, 'year' => $year]) }}" class="btn btn-light border text-muted px-3 py-2">
-                            Batal
-                        </a>
-                    </div>
-                    
+                <!-- Navigasi Halaman ditaruh di luar bulk action agar selalu terlihat -->
+                <div class="d-flex justify-content-end p-3 border-top">
                     <nav aria-label="Page navigation" class="m-0">
                         <ul class="pagination m-0">
                             {{ $salaries->appends(request()->query())->links('pagination::bootstrap-4') }}
@@ -285,47 +274,84 @@
             @endif
         </div>
     </div>
+
+    <!-- Bulk Action Bar diletakkan di luar card, melayang di bawah dan defaultnya tersembunyi (d-none) -->
+    @if (!empty($salaries) && $salaries->count() > 0)
+        <div class="bulk-action-bar d-none justify-content-between align-items-center position-sticky bottom-0 start-0 w-100 mb-4" id="bulkActionBar" style="z-index: 99;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small me-2"><span id="checkedCount" class="fw-bold text-success">0</span> Data Terpilih</span>
+                <button type="submit" form="bulkForm" class="btn btn-success shadow-sm d-flex align-items-center gap-2 px-3 py-2" id="bulkApproveBtn">
+                    <i class="bi bi-check2-all"></i> Setujui yang Dipilih
+                </button>
+                <button type="button" class="btn btn-light border text-muted px-3 py-2" id="btnCancelBulk">
+                    Batal
+                </button>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Script Checkbox Select All
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.salary-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = checkbox.checked;
-            });
-            updateBulkActionBar();
-        }
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.salary-checkbox');
+        const bulkActionBar = document.getElementById('bulkActionBar');
+        const checkedCountText = document.getElementById('checkedCount');
+        const bulkApproveBtn = document.getElementById('bulkApproveBtn');
+        const btnCancelBulk = document.getElementById('btnCancelBulk');
 
-        // Update bulk action bar visibility
         function updateBulkActionBar() {
-            const checked = document.querySelectorAll('.salary-checkbox:checked').length;
-            const bulkActionBar = document.getElementById('bulkActionBar');
+            const checkedCount = document.querySelectorAll('.salary-checkbox:checked').length;
+            
             if (bulkActionBar) {
-                if (checked > 0) {
-                    bulkActionBar.style.display = 'flex';
+                if (checkedCount > 0) {
+                    bulkActionBar.classList.remove('d-none');
+                    bulkActionBar.classList.add('d-flex');
+                    if (checkedCountText) {
+                        checkedCountText.textContent = checkedCount;
+                    }
                 } else {
-                    bulkActionBar.style.display = 'none';
+                    bulkActionBar.classList.remove('d-flex');
+                    bulkActionBar.classList.add('d-none');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
                 }
             }
         }
 
-        // Attach event listeners
-        const selectAllCheckbox = document.getElementById('selectAll');
+        // Event listener untuk master checkbox (Select All)
         if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('click', function() {
-                toggleSelectAll(this);
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+                updateBulkActionBar();
             });
         }
 
-        document.querySelectorAll('.salary-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', updateBulkActionBar);
+        // Event listener untuk baris checkbox individual
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (selectAllCheckbox) {
+                    const allChecked = document.querySelectorAll('.salary-checkbox:checked').length === checkboxes.length;
+                    selectAllCheckbox.checked = allChecked;
+                }
+                updateBulkActionBar();
+            });
         });
 
-        // Script Validasi Bulk Approve
-        const bulkApproveBtn = document.getElementById('bulkApproveBtn');
+        // Tombol batal diklik
+        if (btnCancelBulk) {
+            btnCancelBulk.addEventListener('click', function() {
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                checkboxes.forEach(cb => cb.checked = false);
+                updateBulkActionBar();
+            });
+        }
+
+        // Validasi saat tombol eksekusi disubmit
         if (bulkApproveBtn) {
             bulkApproveBtn.addEventListener('click', function (e) {
                 const checked = document.querySelectorAll('.salary-checkbox:checked').length;
@@ -333,14 +359,13 @@
                     e.preventDefault();
                     alert('Silakan centang minimal 1 data gaji dengan status Draft untuk disetujui.');
                 } else {
-                    if(!confirm(`Anda yakin ingin menyetujui ${checked} data gaji karyawan yang dipilih?`)) {
+                    if (!confirm(`Anda yakin ingin menyetujui ${checked} data gaji karyawan yang dipilih?`)) {
                         e.preventDefault();
                     }
                 }
             });
         }
 
-        // Initial state
         updateBulkActionBar();
     });
 </script>

@@ -84,13 +84,32 @@ class AttendanceRecord extends Model
      */
     public function getElapsedTime(): ?string
     {
-        if (!$this->checkout) {
+        // Must have checkout record
+        if (!$this->checkout || !$this->checkout->check_out_time) {
+            return null;
+        }
+
+        // Must have check-in time
+        if (!$this->check_in_time) {
             return null;
         }
 
         try {
-            $checkIn = Carbon::createFromFormat('H:i:s', (string)$this->check_in_time);
-            $checkOut = Carbon::createFromFormat('H:i:s', (string)$this->checkout->check_out_time);
+            $checkIn = $this->check_in_time;
+            $checkOut = $this->checkout->check_out_time;
+            
+            // Convert to Carbon if string
+            if (is_string($checkIn)) {
+                $checkIn = Carbon::createFromFormat('H:i:s', $checkIn);
+            }
+            if (is_string($checkOut)) {
+                $checkOut = Carbon::createFromFormat('H:i:s', $checkOut);
+            }
+            
+            // Ensure they are Carbon instances
+            if (!($checkIn instanceof Carbon) || !($checkOut instanceof Carbon)) {
+                return null;
+            }
             
             // Handle overnight shifts
             if ($checkOut->lessThan($checkIn)) {
@@ -98,8 +117,17 @@ class AttendanceRecord extends Model
             }
             
             $diff = $checkOut->diff($checkIn);
-            return "{$diff->h}h {$diff->i}m";
+            $hours = $diff->h;
+            $minutes = $diff->i;
+            
+            return "{$hours}h {$minutes}m";
         } catch (\Exception $e) {
+            \Log::error('Error calculating elapsed time: ' . $e->getMessage(), [
+                'attendance_id' => $this->id,
+                'check_in' => $this->check_in_time,
+                'check_out' => $this->checkout?->check_out_time ?? 'null',
+                'error' => $e
+            ]);
             return null;
         }
     }

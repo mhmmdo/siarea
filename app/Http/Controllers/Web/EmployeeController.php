@@ -125,7 +125,7 @@ class EmployeeController extends Controller
             return [
                 'date' => $rec->date,
                 'shift_name' => $rec->shift->name ?? '-',
-                'time' => $rec->time ?? '-',
+                'time' => $rec->check_in_time ? $rec->check_in_time->format('H:i') : '-',
                 'is_late' => $rec->is_late,
             ];
         })->toArray();
