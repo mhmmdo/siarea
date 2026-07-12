@@ -94,7 +94,7 @@
 
 @section('content')
     <div class="app-header py-5 px-4 text-center" style="background: linear-gradient(135deg, #3a2a22 0%, #211915 100%);">
-        <h2 style="font-family: 'Playfair Display', serif; font-weight: 700; margin-bottom: 8px; color: white;">Check-out Selesai</h2>
+        <h2 style="font-family: 'Playfair Display', serif; font-weight: 700; margin-bottom: 8px; color: white;">Check-out</h2>
         <p class="mb-0 opacity-75 small text-white">Scan QR Code untuk mengakhiri shift kerja Anda</p>
     </div>
 
