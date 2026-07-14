@@ -23,18 +23,36 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'login' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $credentials['email'])
+        $loginInput = $credentials['login'];
+
+        // Determine if loginInput is a phone number (numeric)
+        $user = null;
+        if (is_numeric($loginInput)) {
+            // Find employee with this phone
+            $employee = \App\Models\Employee::where('phone', $loginInput)
+                ->where('status', 'active')
+                ->first();
+            if ($employee) {
+                $user = $employee->user;
+            }
+        } else {
+            // Find user with this username or email (for admin)
+            $user = User::where(function($query) use ($loginInput) {
+                $query->where('username', $loginInput)
+                      ->orWhere('email', $loginInput);
+            })
             ->where('status', 'active')
             ->first();
+        }
 
         if (!$user || !password_verify($credentials['password'], $user->password)) {
             return back()->withErrors([
-                'email' => 'Email atau password salah',
-            ])->onlyInput('email');
+                'login' => 'Nomor HP atau password salah',
+            ])->onlyInput('login');
         }
 
         Auth::login($user, $request->has('remember'));

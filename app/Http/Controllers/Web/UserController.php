@@ -10,6 +10,8 @@ use App\Models\QrCode;
 use App\Services\AttendanceService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -31,38 +33,27 @@ class UserController extends Controller
             ->with('shift')
             ->first();
 
-        // Check if can checkout (past shift end time)
+        // Check if can checkout (past shift end time minus 15 minutes buffer)
         $canCheckout = false;
         $shiftEndTime = null;
         $timeUntilCheckout = null;
 
         if ($todayAttendance && !$todayAttendance->hasCheckedOut()) {
             $shiftEndTime = $todayAttendance->shift->end_time;
-            $currentTime = now()->format('H:i:s');
-            
-            // Handle overnight shifts
+            $shiftEnd = Carbon::parse($todayAttendance->date->format('Y-m-d') . ' ' . $shiftEndTime);
             if ($shiftEndTime < $todayAttendance->shift->start_time) {
-                // Overnight shift: check if current time is >= end time OR in early morning part
-                $currentTimeMinutes = $this->timeToMinutes($currentTime);
-                $endTimeMinutes = $this->timeToMinutes($shiftEndTime);
-                
-                if ($currentTimeMinutes >= $endTimeMinutes) {
-                    $canCheckout = true;
-                }
+                $shiftEnd->addDay();
+            }
+            
+            // Karyawan diperbolehkan checkout mulai dari 15 menit sebelum jam shift pulang
+            $allowedCheckoutStart = $shiftEnd->copy()->subMinutes(15);
+
+            $currentTime = now();
+            if ($currentTime->greaterThanOrEqualTo($allowedCheckoutStart)) {
+                $canCheckout = true;
             } else {
-                // Normal shift: check if current time >= end time
-                if ($currentTime >= $shiftEndTime) {
-                    $canCheckout = true;
-                } else {
-                    // Calculate time remaining until checkout
-                    $endMinutes = $this->timeToMinutes($shiftEndTime);
-                    $currentMinutes = $this->timeToMinutes($currentTime);
-                    $remainingMinutes = $endMinutes - $currentMinutes;
-                    
-                    $hours = intdiv($remainingMinutes, 60);
-                    $minutes = $remainingMinutes % 60;
-                    $timeUntilCheckout = sprintf('%02d:%02d', $hours, $minutes);
-                }
+                $diff = $currentTime->diff($allowedCheckoutStart);
+                $timeUntilCheckout = sprintf('%02d:%02d', $diff->h + ($diff->days * 24), $diff->i);
             }
         }
 
@@ -180,38 +171,27 @@ class UserController extends Controller
             ->with('shift', 'checkout')
             ->first();
 
-        // Check if can checkout (past shift end time)
+        // Check if can checkout (past shift end time minus 15 minutes buffer)
         $canCheckout = false;
         $shiftEndTime = null;
         $timeUntilCheckout = null;
 
         if ($todayAttendance && !$todayAttendance->hasCheckedOut()) {
             $shiftEndTime = $todayAttendance->shift->end_time;
-            $currentTime = now()->format('H:i:s');
-            
-            // Handle overnight shifts
+            $shiftEnd = Carbon::parse($todayAttendance->date->format('Y-m-d') . ' ' . $shiftEndTime);
             if ($shiftEndTime < $todayAttendance->shift->start_time) {
-                // Overnight shift: check if current time is >= end time OR in early morning part
-                $currentTimeMinutes = $this->timeToMinutes($currentTime);
-                $endTimeMinutes = $this->timeToMinutes($shiftEndTime);
-                
-                if ($currentTimeMinutes >= $endTimeMinutes) {
-                    $canCheckout = true;
-                }
+                $shiftEnd->addDay();
+            }
+            
+            // Karyawan diperbolehkan checkout mulai dari 15 menit sebelum jam shift pulang
+            $allowedCheckoutStart = $shiftEnd->copy()->subMinutes(15);
+
+            $currentTime = now();
+            if ($currentTime->greaterThanOrEqualTo($allowedCheckoutStart)) {
+                $canCheckout = true;
             } else {
-                // Normal shift: check if current time >= end time
-                if ($currentTime >= $shiftEndTime) {
-                    $canCheckout = true;
-                } else {
-                    // Calculate time remaining until checkout
-                    $endMinutes = $this->timeToMinutes($shiftEndTime);
-                    $currentMinutes = $this->timeToMinutes($currentTime);
-                    $remainingMinutes = $endMinutes - $currentMinutes;
-                    
-                    $hours = intdiv($remainingMinutes, 60);
-                    $minutes = $remainingMinutes % 60;
-                    $timeUntilCheckout = sprintf('%02d:%02d', $hours, $minutes);
-                }
+                $diff = $currentTime->diff($allowedCheckoutStart);
+                $timeUntilCheckout = sprintf('%02d:%02d', $diff->h + ($diff->days * 24), $diff->i);
             }
         }
 
@@ -250,6 +230,30 @@ class UserController extends Controller
             return redirect('/dashboard')->with('error', 'Tidak ada absensi masuk hari ini atau sudah check-out');
         }
 
+        // Check if can checkout (past shift end time minus 15 minutes buffer)
+        $canCheckout = false;
+        $shiftEndTime = null;
+        $timeUntilCheckout = null;
+
+        if ($attendance) {
+            $shiftEndTime = $attendance->shift->end_time;
+            $shiftEnd = Carbon::parse($attendance->date->format('Y-m-d') . ' ' . $shiftEndTime);
+            if ($shiftEndTime < $attendance->shift->start_time) {
+                $shiftEnd->addDay();
+            }
+
+            // Karyawan diperbolehkan checkout mulai dari 15 menit sebelum jam shift pulang
+            $allowedCheckoutStart = $shiftEnd->copy()->subMinutes(15);
+
+            $currentTime = now();
+            if ($currentTime->greaterThanOrEqualTo($allowedCheckoutStart)) {
+                $canCheckout = true;
+            } else {
+                $diff = $currentTime->diff($allowedCheckoutStart);
+                $timeUntilCheckout = sprintf('%02d:%02d', $diff->h + ($diff->days * 24), $diff->i);
+            }
+        }
+
         // Get active QR codes
         $qrCodes = QrCode::where('is_active', true)->get();
 
@@ -257,6 +261,9 @@ class UserController extends Controller
             'employee' => $employee,
             'attendance' => $attendance,
             'qrCodes' => $qrCodes,
+            'canCheckout' => $canCheckout,
+            'shiftEndTime' => $shiftEndTime,
+            'timeUntilCheckout' => $timeUntilCheckout,
         ]);
     }
 
@@ -343,5 +350,31 @@ class UserController extends Controller
             }
             return back()->withErrors(['error' => $result['message']]);
         }
+    }
+
+    /**
+     * Update user password
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+        
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+        ], [
+            'new_password.min' => 'Password baru minimal 6 karakter.',
+            'new_password.confirmed' => 'Konfirmasi password baru tidak cocok.'
+        ]);
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return back()->withErrors(['current_password' => 'Password saat ini salah.']);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['new_password']),
+        ]);
+
+        return back()->with('success', 'Password Anda berhasil diperbarui!');
     }
 }

@@ -109,6 +109,14 @@
             </div>
         </div>
 
+        @if (isset($timeUntilCheckout) && $timeUntilCheckout)
+            <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4 text-center small">
+                <i class="bi bi-clock me-2"></i> 
+                <strong>Belum jam pulang</strong><br>
+                <span class="small">Bisa check-out dalam {{ $timeUntilCheckout }}</span>
+            </div>
+        @endif
+
         @if ($errors->has('error'))
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4 text-center small">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ $errors->first('error') }}
@@ -123,9 +131,15 @@
                         <i class="bi bi-box-arrow-right"></i>
                     </div>
                     <h5 class="fw-bold text-dark mb-2">Akhiri Pekerjaan</h5>
-                    <p class="text-muted small mb-4 px-3">Ketuk tombol di bawah untuk verifikasi lokasi dan pindai QR Code pulang.</p>
+                    <p class="text-muted small mb-4 px-3">
+                        @if (isset($timeUntilCheckout) && $timeUntilCheckout)
+                            Tunggu hingga jam pulang, lalu scan QR Code untuk check-out.
+                        @else
+                            Ketuk tombol di bawah untuk verifikasi lokasi dan pindai QR Code pulang.
+                        @endif
+                    </p>
                     
-                    <button type="button" class="btn btn-huge w-100 shadow" onclick="startCheckoutProcess()">
+                    <button type="button" class="btn btn-huge w-100 shadow" onclick="startCheckoutProcess()" @if (isset($timeUntilCheckout) && $timeUntilCheckout) disabled title="Belum jam pulang" @endif>
                         <i class="bi bi-qr-code-scan me-2"></i> Buka Kamera Pulang
                     </button>
                 </div>
@@ -184,6 +198,14 @@
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    // Check accuracy to mitigate basic Fake GPS usage (accuracy === 0)
+                    if (position.coords.accuracy === 0) {
+                        alert('Terdeteksi penggunaan GPS Palsu (Mock Location). Harap matikan aplikasi GPS palsu Anda.');
+                        btn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i> Buka Kamera Pulang';
+                        btn.disabled = false;
+                        return;
+                    }
+
                     document.getElementById('lat-hidden').value = position.coords.latitude;
                     document.getElementById('lng-hidden').value = position.coords.longitude;
 

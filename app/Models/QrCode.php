@@ -46,10 +46,6 @@ class QrCode extends Model
         return $this->hasMany(AttendanceRecord::class, 'qr_id');
     }
 
-    /**
-     * Check if QR code is currently active (within shift hours)
-     * Handles both normal (09:00-18:00) and overnight (17:00-00:00) ranges
-     */
     public function isCurrentlyActive(): bool
     {
         if (!$this->is_active) {
@@ -85,6 +81,12 @@ class QrCode extends Model
             $fromTotalMinutes = $fromHour * 60 + $fromMinute;
             $untilTotalMinutes = $untilHour * 60 + $untilMinute;
 
+            // Allow checking in up to 60 minutes before shift starts
+            $allowedFromMinutes = $fromTotalMinutes - 60;
+            if ($allowedFromMinutes < 0) {
+                $allowedFromMinutes += 24 * 60;
+            }
+
             \Log::debug('QR Time Check', [
                 'qr_id' => $this->id,
                 'qr_name' => $this->name,
@@ -93,17 +95,18 @@ class QrCode extends Model
                 'shift_start' => $activeFrom,
                 'shift_end' => $activeUntil,
                 'from_minutes' => $fromTotalMinutes,
+                'allowed_from_minutes' => $allowedFromMinutes,
                 'until_minutes' => $untilTotalMinutes,
                 'current_minutes' => $currentTotalMinutes,
             ]);
 
             // Normal time range (e.g., 09:00 - 18:00)
-            if ($fromTotalMinutes <= $untilTotalMinutes) {
-                $isActive = $currentTotalMinutes >= $fromTotalMinutes && $currentTotalMinutes <= $untilTotalMinutes;
+            if ($allowedFromMinutes <= $untilTotalMinutes) {
+                $isActive = $currentTotalMinutes >= $allowedFromMinutes && $currentTotalMinutes <= $untilTotalMinutes;
             }
             // Overnight range (e.g., 17:00 - 00:00)
             else {
-                $isActive = $currentTotalMinutes >= $fromTotalMinutes || $currentTotalMinutes <= $untilTotalMinutes;
+                $isActive = $currentTotalMinutes >= $allowedFromMinutes || $currentTotalMinutes <= $untilTotalMinutes;
             }
 
             \Log::debug('QR Time Result', ['qr_id' => $this->id, 'is_active' => $isActive]);

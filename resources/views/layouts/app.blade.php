@@ -438,6 +438,12 @@
                     <span>Laporan</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('admin.profile') }}" class="@if (Route::current()->getName() === 'admin.profile') active @endif">
+                    <i class="bi bi-person-gear"></i>
+                    <span>Pengaturan Akun</span>
+                </a>
+            </li>
         </ul>
 
         <div class="sidebar-footer">
@@ -458,8 +464,10 @@
                 </button>
             </div>
             <div class="topbar-user">
-                <span class="d-none d-md-block" style="color: var(--cafe-secondary);">{{ Auth::user()->name }}</span>
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ Auth::user()->id }}&backgroundColor=FBF9F6" alt="User Avatar" />
+                <a href="{{ route('admin.profile') }}" class="text-decoration-none d-flex align-items-center gap-2">
+                    <span class="d-none d-md-block" style="color: var(--cafe-secondary);">{{ Auth::user()->name }}</span>
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ Auth::user()->id }}&backgroundColor=FBF9F6" alt="User Avatar" />
+                </a>
             </div>
         </div>
 

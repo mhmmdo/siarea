@@ -135,6 +135,22 @@
 @section('content')
     <div class="desktop-px px-lg-4">
         
+        @if (session('success'))
+            <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4 text-center small">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4 text-center small">
+                <ul class="mb-0 list-unstyled">
+                    @foreach ($errors->all() as $error)
+                        <li><i class="bi bi-exclamation-triangle-fill me-2"></i> {{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="profile-banner-container">
             <div class="profile-cover"></div>
             <div class="profile-avatar-wrapper">
@@ -258,7 +274,50 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Form Ubah Kata Sandi (Mandiri) -->
+        <div class="row px-3 px-lg-0 g-4 mb-5">
+            <div class="col-lg-6 mx-auto">
+                <div class="profile-card">
+                    <div class="profile-section-title">
+                        <i class="bi bi-key-fill"></i> Ubah Kata Sandi
+                    </div>
+                    
+                    <form action="{{ route('user.profile.password') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Password Saat Ini</label>
+                            <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                <span class="input-group-text border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="current_password" name="current_password" required placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Password Baru</label>
+                            <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                <span class="input-group-text border-end-0"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="new_password" name="new_password" required placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="new_password_confirmation" class="form-label">Konfirmasi Password Baru</label>
+                            <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                <span class="input-group-text border-end-0"><i class="bi bi-key-fill"></i></span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="new_password_confirmation" name="new_password_confirmation" required placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-cafe w-100 rounded-pill py-2 shadow-sm fw-bold">
+                            <i class="bi bi-check2-circle me-1"></i> Perbarui Password
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -54,6 +54,15 @@ class AttendanceService
                 ];
             }
 
+            // Validation: QR code is currently active based on shift hours
+            if (!$qr->isCurrentlyActive()) {
+                return [
+                    'success' => false,
+                    'message' => '❌ Jam Aktif QR Tidak Sesuai',
+                    'errors' => ['time' => 'QR Code ini hanya aktif pada jam shift yang telah ditentukan'],
+                ];
+            }
+
             // Validation: Employee is assigned to this shift
             if ($employee->shift_id !== $qr->shift_id) {
                 return [
@@ -232,36 +241,24 @@ class AttendanceService
                 ];
             }
 
-            // Validation: Current time is at or after shift end time
+            // Validation: Current time is at or after shift end time minus 15 minutes buffer
             $now = now();
             $currentTime = $now->format('H:i:s');
             $shiftEndTime = $attendance->shift->end_time;
             
-            // Handle overnight shifts (e.g., 17:00-00:00)
+            $shiftEnd = Carbon::parse($attendance->date->format('Y-m-d') . ' ' . $shiftEndTime);
             if ($shiftEndTime < $attendance->shift->start_time) {
-                // Overnight shift: check if current time is after end time OR still before end time on next day
-                $currentTimeMinutes = $this->timeToMinutes($currentTime);
-                $endTimeMinutes = $this->timeToMinutes($shiftEndTime);
-                
-                // Allow checkout if time >= end time (next day) OR still within shift range
-                if ($currentTimeMinutes < $endTimeMinutes) {
-                    // We're in the "early morning" part of overnight shift (e.g., 23:00-00:00)
-                    // Check if we've passed the end time
-                    return [
-                        'success' => false,
-                        'message' => '❌ Belum Jam Pulang',
-                        'errors' => ['time' => "Jam pulang adalah {$shiftEndTime}"],
-                    ];
-                }
-            } else {
-                // Normal shift: check if current time >= end time
-                if ($currentTime < $shiftEndTime) {
-                    return [
-                        'success' => false,
-                        'message' => '❌ Belum Jam Pulang',
-                        'errors' => ['time' => "Jam pulang adalah {$shiftEndTime}"],
-                    ];
-                }
+                $shiftEnd->addDay();
+            }
+
+            $allowedCheckoutStart = $shiftEnd->copy()->subMinutes(15);
+
+            if ($now->lessThan($allowedCheckoutStart)) {
+                return [
+                    'success' => false,
+                    'message' => '❌ Belum Jam Pulang',
+                    'errors' => ['time' => "Jam pulang adalah {$shiftEndTime}"],
+                ];
             }
 
             // Validation: User is within GPS radius of QR location

@@ -161,20 +161,25 @@ class EmployeeController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email',
+            'email' => 'sometimes|email|unique:users,email,' . $employee->user->id,
             'phone' => 'sometimes|string|max:20',
             'shift_id' => 'sometimes|exists:shifts,id',
             'base_salary' => 'sometimes|numeric|min:0',
             'late_deduction_amount' => 'sometimes|numeric|min:0',
             'is_active' => 'sometimes|boolean',
+            'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         // Update user
-        if (isset($validated['name']) || isset($validated['email'])) {
-            $employee->user->update([
+        if (isset($validated['name']) || isset($validated['email']) || !empty($validated['password'])) {
+            $userData = [
                 'name' => $validated['name'] ?? $employee->user->name,
                 'email' => $validated['email'] ?? $employee->user->email,
-            ]);
+            ];
+            if (!empty($validated['password'])) {
+                $userData['password'] = Hash::make($validated['password']);
+            }
+            $employee->user->update($userData);
         }
 
         // Update employee

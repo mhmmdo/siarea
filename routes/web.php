@@ -76,6 +76,10 @@ Route::middleware(['auth:web', 'admin'])->prefix('admin')->name('admin.')->group
 
     // Reports
     Route::get('/attendance-report', [AdminController::class, 'attendanceReport'])->name('attendance.report');
+
+    // Admin Profile & Password Update
+    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+    Route::put('/profile/password', [AdminController::class, 'updatePassword'])->name('profile.password');
 });
 
 // ============================================================================
@@ -90,4 +94,5 @@ Route::middleware(['auth:web'])->prefix('dashboard')->name('user.')->group(funct
     Route::post('/attendance/{attendanceId}/checkout', [UserController::class, 'submitCheckout'])->name('attendance.checkout');
     Route::get('/salary', [UserController::class, 'salary'])->name('salary');
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+    Route::put('/profile/password', [UserController::class, 'updatePassword'])->name('profile.password');
 });

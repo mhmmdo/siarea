@@ -308,6 +308,14 @@
             // Get GPS
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    // Check accuracy to mitigate basic Fake GPS usage (accuracy === 0)
+                    if (position.coords.accuracy === 0) {
+                        alert('Terdeteksi penggunaan GPS Palsu (Mock Location). Harap matikan aplikasi GPS palsu Anda.');
+                        btn.innerHTML = isCheckout ? '<i class="bi bi-box-arrow-right me-2"></i> Buka Kamera Pulang' : '<i class="bi bi-qr-code-scan me-2"></i> Buka Scanner';
+                        btn.disabled = false;
+                        return;
+                    }
+
                     document.getElementById('lat-hidden').value = position.coords.latitude;
                     document.getElementById('lng-hidden').value = position.coords.longitude;
 

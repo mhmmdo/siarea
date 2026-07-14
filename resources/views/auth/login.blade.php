@@ -242,10 +242,10 @@
                 @csrf
 
                 <div class="form-group mb-3">
-                    <label for="email" class="form-label">Alamat Email</label>
+                    <label for="login" class="form-label">Nomor HP / Username</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" value="{{ old('email') }}" id="email" name="email" class="form-control @error('email') is-invalid @enderror" placeholder="Masukkan email terdaftar" required autofocus autocomplete="username">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" value="{{ old('login') }}" id="login" name="login" class="form-control @error('login') is-invalid @enderror" placeholder="Masukkan nomor HP atau username" required autofocus autocomplete="username">
                     </div>
                 </div>
 

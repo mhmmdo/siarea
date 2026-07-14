@@ -152,6 +152,25 @@
                                     <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
                             </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password Baru (Kosongkan jika tidak ingin diubah)</label>
+                                <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                    <span class="input-group-text border-end-0"><i class="bi-shield-lock"></i></span>
+                                    <input type="password" class="form-control border-start-0 ps-0 @error('password') is-invalid @enderror" id="password" name="password" placeholder="••••••••">
+                                </div>
+                                @error('password')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="password_confirmation" class="form-label">Konfirmasi Password Baru</label>
+                                <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                    <span class="input-group-text border-end-0"><i class="bi-shield-lock-fill"></i></span>
+                                    <input type="password" class="form-control border-start-0 ps-0" id="password_confirmation" name="password_confirmation" placeholder="••••••••">
+                                </div>
+                            </div>
                         </div>
 
                         <hr class="mb-4" style="opacity: 0.1;">
