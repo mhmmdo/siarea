@@ -211,4 +211,62 @@ class AttendanceTest extends TestCase
         $this->assertFalse($secondCheckout['success']);
         $this->assertStringContainsString('sudah pulang', strtolower($secondCheckout['message']));
     }
+
+    /**
+     * Test that multiple users can perform attendance simultaneously.
+     */
+    public function test_multiple_users_can_attend_simultaneously()
+    {
+        // Mock current time during shift (10:00)
+        Carbon::setTestNow(Carbon::today()->setTime(10, 0, 0));
+
+        // Create User B
+        $userB = User::create([
+            'name' => 'Karyawan Test B',
+            'username' => 'karyawantestb',
+            'email' => 'karyawanb@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'employee',
+            'status' => 'active',
+        ]);
+
+        // Create Employee B assigned to same shift
+        $employeeB = Employee::create([
+            'user_id' => $userB->id,
+            'shift_id' => $this->shift->id,
+            'full_name' => 'Karyawan Test B',
+            'phone' => '081234567891',
+            'basic_salary' => 3000000.00,
+            'late_deduction_amount' => 50000.00,
+            'hire_date' => today()->format('Y-m-d'),
+            'status' => 'active',
+        ]);
+
+        // 1. Employee A checks in
+        $resultA = $this->service->processQRScan(
+            $this->employee->id,
+            $this->qrCode->code,
+            -6.200000,
+            106.800000
+        );
+
+        // 2. Employee B checks in directly after (simultaneously)
+        $resultB = $this->service->processQRScan(
+            $employeeB->id,
+            $this->qrCode->code,
+            -6.200000,
+            106.800000
+        );
+
+        $this->assertTrue($resultA['success']);
+        $this->assertTrue($resultB['success']);
+
+        // Assert both records exist in DB
+        $this->assertDatabaseHas('attendance_records', [
+            'employee_id' => $this->employee->id,
+        ]);
+        $this->assertDatabaseHas('attendance_records', [
+            'employee_id' => $employeeB->id,
+        ]);
+    }
 }
