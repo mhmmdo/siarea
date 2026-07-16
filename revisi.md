@@ -34,7 +34,8 @@ Skenario pengujian yang tercakup dalam `tests/Feature/AttendanceTest.php`:
 2. **Presensi di luar jam aktif:** Memastikan check-in ditolak di luar jam aktif shift dan buffer.
 3. **Presensi memakai QR tidak valid:** Memastikan penolakan jika kode token QR palsu atau dinonaktifkan.
 4. **Percobaan check-in ganda:** Memastikan karyawan tidak bisa check-in berulang kali pada hari yang sama.
-5. **Checkout ganda (Akses bersamaan):** Menolak proses checkout berulang jika status absensi hari tersebut sudah terekam pulang.
+5. **Checkout ganda:** Menolak proses checkout berulang jika status absensi hari tersebut sudah terekam pulang.
+6. **Akses bersamaan (Concurrent Access):** Memastikan minimal 2 akun/staf berbeda dapat melakukan absensi secara bersamaan dengan sukses pada shift yang sama (`test_multiple_users_can_attend_simultaneously`).
 
 ---
 
